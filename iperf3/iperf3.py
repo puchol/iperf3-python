@@ -145,9 +145,7 @@ class IPerf3(object):
         self.lib.iperf_get_test_server_hostname.restype = c_char_p
         self.lib.iperf_get_test_server_hostname.argtypes = (c_void_p,)
         self.lib.iperf_set_test_server_hostname.restype = None
-        self.lib.iperf_set_test_server_hostname.argtypes = (
-            c_void_p, c_char_p,
-        )
+        self.lib.iperf_set_test_server_hostname.argtypes = (c_void_p, c_char_p,)
         self.lib.iperf_get_test_protocol_id.restype = c_int
         self.lib.iperf_get_test_protocol_id.argtypes = (c_void_p,)
         self.lib.set_protocol.restype = c_int
@@ -160,6 +158,10 @@ class IPerf3(object):
         self.lib.iperf_get_test_duration.argtypes = (c_void_p,)
         self.lib.iperf_set_test_duration.restype = None
         self.lib.iperf_set_test_duration.argtypes = (c_void_p, c_int,)
+        self.lib.iperf_get_test_custom_uuid.restype = c_char_p
+        self.lib.iperf_get_test_custom_uuid.argtypes = (c_void_p,)
+        self.lib.iperf_set_test_custom_uuid.restype = None
+        self.lib.iperf_set_test_custom_uuid.argtypes = (c_void_p, c_char_p,)
         self.lib.iperf_get_test_rate.restype = c_uint64
         self.lib.iperf_get_test_rate.argtypes = (c_void_p,)
         self.lib.iperf_set_test_rate.restype = None
@@ -427,7 +429,8 @@ class Client(IPerf3):
         self._duration = None
         self._bandwidth = None
         self._protocol = None
-
+        self._custom_uuid = None
+        
     @property
     def server_hostname(self):
         """The server hostname to connect to.
@@ -503,7 +506,29 @@ class Client(IPerf3):
     def duration(self, duration):
         self.lib.iperf_set_test_duration(self._test, duration)
         self._duration = duration
+        
+    @property
+    def custom_uuid(self):
+        """A custom UUID to be sent in place of the cookie.
+        :rtype: string
+        """
+        result = c_char_p(
+            self.lib.iperf_get_test_custom_uuid(self._test)
+        ).value
+        if result:
+            self._custom_uuid = result.decode('utf-8')
+        else:
+            self._custom_uuid = None
+        return self._custom_uuid
 
+    @custom_uuid.setter
+    def custom_uuid(self, custom_uuid):
+        self.lib.iperf_set_test_custom_uuid(
+            self._test,
+            c_char_p(custom_uuid.encode('utf-8'))
+        )
+        self._custom_uuid = custom_uuid
+        
     @property
     def bandwidth(self):
         """Target bandwidth in bits/sec"""
@@ -789,6 +814,9 @@ class TestResult(object):
         else:
             self.error = None
 
+            # cookie
+            self.cookie = self.json['start']['cookie']
+            
             # start time
             self.time = self.json['start']['timestamp']['time']
             self.timesecs = self.json['start']['timestamp']['timesecs']
