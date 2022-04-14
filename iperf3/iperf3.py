@@ -872,24 +872,21 @@ class TestResult(object):
             # TCP specific test results
             if self.protocol == 'TCP':
                 if ('sum_sent_bidir_reverse' in self.json['end']): # Bidirectional results
-                    sent_json_fwd = self.json['end']['sum_sent']
-                    recv_json_fwd = self.json['end']['sum_received']
-                    sent_json_rev = self.json['end']['sum_sent_bidir_reverse']
-                    recv_json_rev = self.json['end']['sum_received_bidir_reverse']
-                    
-                    if (sent_json_fwd['bytes'] > sent_json_rev['bytes']):
-                        self.sent_bytes = sent_json_fwd['bytes']
-                        self.sent_bps = sent_json_fwd['bits_per_second']
+                    if (self.json['end']['sum_sent']['sender'] == False):
+                        sent_json_rev = self.json['end']['sum_sent']
+                        recv_json_rev = self.json['end']['sum_received']
+                        sent_json_fwd = self.json['end']['sum_sent_bidir_reverse']
+                        recv_json_fwd = self.json['end']['sum_received_bidir_reverse']
                     else:
-                        self.sent_bytes = sent_json_rev['bytes']
-                        self.sent_bps = sent_json_rev['bits_per_second']
-
-                    if (recv_json_fwd['bytes'] > recv_json_rev['bytes']):
-                        self.received_bytes = recv_json_fwd['bytes']
-                        self.received_bps = recv_json_fwd['bits_per_second']
-                    else:
-                        self.received_bytes = recv_json_rev['bytes']
-                        self.received_bps = recv_json_rev['bits_per_second']
+                        sent_json_fwd = self.json['end']['sum_sent']
+                        recv_json_fwd = self.json['end']['sum_received']
+                        sent_json_rev = self.json['end']['sum_sent_bidir_reverse']
+                        recv_json_rev = self.json['end']['sum_received_bidir_reverse']
+                                                                    
+                    self.sent_bytes = sent_json_fwd['bytes']
+                    self.sent_bps = sent_json_fwd['bits_per_second']
+                    self.received_bytes = recv_json_rev['bytes']
+                    self.received_bps = recv_json_rev['bits_per_second']
 
                     # retransmits only returned from client
                     self.retransmits = sent_json_fwd.get('retransmits') if ('retransmits' in sent_json_fwd) else sent_json_rev.get('retransmits')
