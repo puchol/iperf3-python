@@ -799,15 +799,15 @@ class TestResult(object):
     :param lost_percent:
     :param seconds:
     """
-
+    
     def __init__(self, result):
         """Initialise TestResult
 
         :param result: raw json output from :class:`Client` and :class:`Server`
         """
         # The full result data
-        self.text = result
-        self.json = json.loads(result)
+        self.text = '{' + result.partition('{')[2]
+        self.json = json.loads(self.text)
 
         if 'error' in self.json:
             self.error = self.json['error']
@@ -851,33 +851,67 @@ class TestResult(object):
 
             # TCP specific test results
             if self.protocol == 'TCP':
-                sent_json = self.json['end']['sum_sent']
-                self.sent_bytes = sent_json['bytes']
-                self.sent_bps = sent_json['bits_per_second']
+                if ('sum_sent_bidir_reverse' in self.json['end']): # Bidirectional results
+                    sent_json_fwd = self.json['end']['sum_sent']
+                    recv_json_fwd = self.json['end']['sum_received']
+                    sent_json_rev = self.json['end']['sum_sent_bidir_reverse']
+                    recv_json_rev = self.json['end']['sum_received_bidir_reverse']
+                    
+                    if (sent_json_fwd['bytes'] > sent_json_rev['bytes']):
+                        self.sent_bytes = sent_json_fwd['bytes']
+                        self.sent_bps = sent_json_fwd['bits_per_second']
+                    else:
+                        self.sent_bytes = sent_json_rev['bytes']
+                        self.sent_bps = sent_json_rev['bits_per_second']
 
-                recv_json = self.json['end']['sum_received']
-                self.received_bytes = recv_json['bytes']
-                self.received_bps = recv_json['bits_per_second']
+                    if (recv_json_fwd['bytes'] > recv_json_rev['bytes']):
+                        self.received_bytes = recv_json_fwd['bytes']
+                        self.received_bps = recv_json_fwd['bits_per_second']
+                    else:
+                        self.received_bytes = recv_json_rev['bytes']
+                        self.received_bps = recv_json_rev['bits_per_second']
 
-                # Bits are measured in 10**3 terms
-                # Bytes are measured in 2**10 terms
-                # kbps = Kilobits per second
-                # Mbps = Megabits per second
-                # kB_s = kiloBytes per second
-                # MB_s = MegaBytes per second
+                    # retransmits only returned from client
+                    self.retransmits = sent_json_fwd.get('retransmits') if ('retransmits' in sent_json_fwd) else sent_json_rev.get('retransmits')
 
-                self.sent_kbps = self.sent_bps / 1000
-                self.sent_Mbps = self.sent_kbps / 1000
-                self.sent_kB_s = self.sent_bps / (8 * 1024)
-                self.sent_MB_s = self.sent_kB_s / 1024
-
-                self.received_kbps = self.received_bps / 1000
-                self.received_Mbps = self.received_kbps / 1000
-                self.received_kB_s = self.received_bps / (8 * 1024)
-                self.received_MB_s = self.received_kB_s / 1024
-
-                # retransmits only returned from client
-                self.retransmits = sent_json.get('retransmits')
+                    self.sent_kbps = self.sent_bps / 1000
+                    self.sent_Mbps = self.sent_kbps / 1000
+                    self.sent_kB_s = self.sent_bps / (8 * 1024)
+                    self.sent_MB_s = self.sent_kB_s / 1024
+    
+                    self.received_kbps = self.received_bps / 1000
+                    self.received_Mbps = self.received_kbps / 1000
+                    self.received_kB_s = self.received_bps / (8 * 1024)
+                    self.received_MB_s = self.received_kB_s / 1024
+                                                                                
+                else:                    
+                    sent_json = self.json['end']['sum_sent']
+                    self.sent_bytes = sent_json['bytes']
+                    self.sent_bps = sent_json['bits_per_second']
+    
+                    recv_json = self.json['end']['sum_received']
+                    self.received_bytes = recv_json['bytes']
+                    self.received_bps = recv_json['bits_per_second']
+    
+                    # Bits are measured in 10**3 terms
+                    # Bytes are measured in 2**10 terms
+                    # kbps = Kilobits per second
+                    # Mbps = Megabits per second
+                    # kB_s = kiloBytes per second
+                    # MB_s = MegaBytes per second
+    
+                    self.sent_kbps = self.sent_bps / 1000
+                    self.sent_Mbps = self.sent_kbps / 1000
+                    self.sent_kB_s = self.sent_bps / (8 * 1024)
+                    self.sent_MB_s = self.sent_kB_s / 1024
+    
+                    self.received_kbps = self.received_bps / 1000
+                    self.received_Mbps = self.received_kbps / 1000
+                    self.received_kB_s = self.received_bps / (8 * 1024)
+                    self.received_MB_s = self.received_kB_s / 1024
+    
+                    # retransmits only returned from client
+                    self.retransmits = sent_json.get('retransmits')
 
             # UDP specific test results
             elif self.protocol == 'UDP':
