@@ -178,12 +178,14 @@ class IPerf3(object):
         self.lib.iperf_has_zerocopy.argtypes = None
         self.lib.iperf_set_test_zerocopy.restype = None
         self.lib.iperf_set_test_zerocopy.argtypes = (c_void_p, c_int,)
+        self.lib.iperf_set_test_bidirectional.restype = None
+        self.lib.iperf_set_test_bidirectional.argtypes = (c_void_p, c_int,)        
         self.lib.iperf_get_test_reverse.restype = c_int
         self.lib.iperf_get_test_reverse.argtypes = (c_void_p,)
         self.lib.iperf_set_test_reverse.restype = None
         self.lib.iperf_set_test_reverse.argtypes = (c_void_p, c_int,)
         self.lib.iperf_run_client.restype = c_int
-        self.lib.iperf_run_client.argtypes = (c_void_p,)
+        self.lib.iperf_run_client.argtypes = (c_void_p,)        
         self.lib.iperf_run_server.restype = c_int
         self.lib.iperf_run_server.argtypes = (c_void_p,)
         self.lib.iperf_reset_test.restype = None
@@ -607,6 +609,23 @@ class Client(IPerf3):
             self.lib.iperf_set_test_zerocopy(self._test, 0)
             self._zerocopy = False
 
+    @property
+    def bidirectional(self):
+        """Enables bidirectional testing
+
+        :rtype: bool
+        """
+        return self._bidirectional
+        
+    @bidirectional.setter
+    def bidirectional(self, enabled):
+        if enabled:
+            self.lib.iperf_set_test_bidirectional(self._test, 1)
+        else:
+            self.lib.iperf_set_test_bidirectional(self._test, 0)
+
+        self._bidirectional = enabled
+        
     @property
     def reverse(self):
         """Toggles direction of test
