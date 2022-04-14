@@ -858,7 +858,8 @@ class TestResult(object):
             self.blksize = self.json['start']['test_start']['blksize']
             self.omit = self.json['start']['test_start']['omit']
             self.duration = self.json['start']['test_start']['duration']
-
+            self.target_bitrate = self.json['start']['test_start']['target_bitrate']
+            
             # system performance
             cpu_utilization_perc = self.json['end']['cpu_utilization_percent']
             self.local_cpu_total = cpu_utilization_perc['host_total']
